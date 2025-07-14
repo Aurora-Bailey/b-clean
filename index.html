@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>B-Clean Tracker</title>
+  <style>
+    body { font-family: sans-serif; padding:20px; max-width:600px; margin:auto }
+    h1,h2 { text-align:center }
+    button { padding:10px 20px; margin:10px 0; }
+    ul { list-style:none; padding:0 }
+    li { padding:8px; margin:4px 0; border:1px solid #ccc; cursor:pointer }
+    li.inprogress { background: yellow }
+    li.done { background: #f9f9f9; text-decoration: line-through; color:#666 }
+    #resultPage img { max-width:100%; margin-bottom:10px }
+  </style>
+</head>
+<body>
+
+  <div id="trackerPage">
+    <h1>B-Clean Tracker</h1>
+    <label for="presetSelect">Select Room:</label>
+    <select id="presetSelect"></select>
+    <button id="startButton">Start</button>
+    <ul id="taskList"></ul>
+    <button id="doneButton" disabled>Done</button>
+  </div>
+
+  <div id="resultPage" style="display:none">
+    <h2>Results</h2>
+    <img id="photoPreview" alt="Finished clean photo">
+    <ul id="statsList"></ul>
+    <p>Score: <span id="score"></span></p>
+  </div>
+
+  <input type="file" accept="image/*" capture="environment" id="photoInput" style="display:none">
+
+  <script>
+    /*
+      CONFIGURE YOUR PRESETS HERE:
+      - Key = room name
+      - tasks = array of steps
+      - expectedTime = total expected clean time (in seconds)
+    */
+    const presets = {
+      "Room A": { tasks:["Wipe shelves","Mop floor","Clean bench"], expectedTime:7200 },
+      "Room B": { tasks:["Empty bins","Sanitize surfaces","Restock supplies"], expectedTime:5400 }
+    };
+
+    // UI references
+    const presetSelect = document.getElementById("presetSelect");
+    const startButton   = document.getElementById("startButton");
+    const taskList      = document.getElementById("taskList");
+    const doneButton    = document.getElementById("doneButton");
+    const photoInput    = document.getElementById("photoInput");
+    const trackerPage   = document.getElementById("trackerPage");
+    const resultPage    = document.getElementById("resultPage");
+    const statsList     = document.getElementById("statsList");
+    const photoPreview  = document.getElementById("photoPreview");
+    const scoreEl       = document.getElementById("score");
+
+    // Populate room dropdown
+    Object.keys(presets).forEach(name => {
+      const opt = document.createElement("option");
+      opt.value = name; opt.textContent = name;
+      presetSelect.append(opt);
+    });
+
+    let tasks = [], startTime, currentPreset;
+
+    // Start button: build task list and record start time
+    startButton.onclick = () => {
+      currentPreset = presets[presetSelect.value];
+      tasks = currentPreset.tasks.map(name => ({
+        name, state:"waiting", waitTime:0, progTime:0, tStart:null
+      }));
+      startTime = Date.now();
+      taskList.innerHTML = "";
+      tasks.forEach((t,i) => {
+        const li = document.createElement("li");
+        li.textContent = t.name;
+        li.onclick = () => handleTaskClick(i, li);
+        taskList.append(li);
+      });
+      doneButton.disabled = true;
+    };
+
+    // Handle clicking a task: waiting → in-progress → done
+    function handleTaskClick(i, li) {
+      const now = Date.now(), t = tasks[i];
+      if (t.state === "waiting") {
+        t.state = "inprogress";
+        t.waitTime = now - startTime;
+        t.tStart = now;
+        li.classList.add("inprogress");
+      } else if (t.state === "inprogress") {
+        t.state = "done";
+        t.progTime = now - t.tStart;
+        li.classList.remove("inprogress");
+        li.classList.add("done");
+      }
+      doneButton.disabled = !tasks.every(t=>t.state==="done");
+    }
+
+    // When all done, open camera
+    doneButton.onclick = () => photoInput.click();
+
+    // After photo taken, show results
+    photoInput.onchange = () => {
+      const file = photoInput.files[0];
+      if (!file) return;
+      photoPreview.src = URL.createObjectURL(file);
+      trackerPage.style.display = "none";
+      resultPage.style.display  = "block";
+      statsList.innerHTML = "";
+      const totalSec = (Date.now() - startTime)/1000;
+      tasks.forEach(t => {
+        const li = document.createElement("li");
+        li.textContent = `${t.name}: waited ${Math.round(t.waitTime/1000)}s, took ${Math.round(t.progTime/1000)}s`;
+        statsList.append(li);
+      });
+      const rawScore = Math.floor(currentPreset.expectedTime / totalSec * 100);
+      scoreEl.textContent = Math.max(0, Math.min(100, rawScore));
+    };
+  </script>
+
+</body>
+</html>
