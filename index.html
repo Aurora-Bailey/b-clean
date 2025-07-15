@@ -76,16 +76,12 @@
       - expectedTime = total expected clean time (in seconds)
     */
       const presets = {
-        "HSB-BACK": {
+        "HSB-LABEL": {
           tasks: [
             "Remove last bottle from the line",
             "Excess everything to a single pallet",
-            "Use Rags to wipe down the line",
-            "Sweep the floors",
-            "Take out single trash pallet",
-            "Double check everything is out",
+            "Use Rags to wipe down the Labeler",
             "Staging new product for the room",
-            "All materials loaded",
             "Labels set",
             "Lot set",
             "PVC set",
@@ -93,8 +89,13 @@
           ],
           expectedTime: 7200,
         },
-        "": {
-          tasks: ["Empty bins", "Sanitize surfaces", "Restock supplies"],
+        "PACKOFF-A": {
+          tasks: [
+            "Sweep",
+            "Empty bins",
+            "Sanitize surfaces",
+            "Restock supplies",
+          ],
           expectedTime: 5400,
         },
       };
